@@ -29,7 +29,7 @@ def crawHtmlForForms(html:str):
         if len(div) == 0:
             raise Exception("No forms found in the HTML. Cannot proceed.")
 
-        print(div)
+        print(div) # debugging 
         formsList = []
         for elements in div: 
             
@@ -65,6 +65,6 @@ def crawlUrl(rootUrl:str):
     
         
         
-print(crawHtmlForForms(getResponse("http://testphp.vulnweb.com/")))
+print(crawHtmlForForms(getResponse("http://google.com")))
         
         
