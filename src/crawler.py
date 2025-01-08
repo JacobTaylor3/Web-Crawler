@@ -5,6 +5,8 @@ import requests
 from urllib.parse import urlparse, urljoin, urlunparse
 
 
+#go over if I should catch the ejection for a get request and continue the program not terminate it. Like in the get request
+
 def getHtml(url: str):  # add in if the http is not included format the url
     PREFIX = "https://"  # update this so we only validate urls also update for http
     if not any(ext in url for ext in [".com", ".org", ".net"]):
@@ -44,12 +46,12 @@ def crawlWebsite(rootUrl: str) -> list:
     return crawlerHelper(set(), rootUrl)
 
 
-def crawlerHelper(set: set, list:list, url: str) -> list:
+def crawlerHelper(setUrl: set, listOfLinks:list, url: str) -> list:
     # base case
     if url in set or len(set) == 500 or urlDepth(url) > 3:
         return list
     
-    set.add(url)
+    setUrl.add(url)
     responseHtml = getHtml(url)
     
     hrefList = BeautifulSoup(responseHtml, "html.parser").find_all("a")
@@ -58,11 +60,13 @@ def crawlerHelper(set: set, list:list, url: str) -> list:
         return list
     
     else:
-        for link in hrefList:
-           data =  link.get("href")
-           list.append(data)
+        for href in hrefList:
+           data =  href.get("href")
+           listOfLinks.append(data)
     
-    return crawlerHelper(set,list,list.pop()) #need to figure out this logic 
+    return crawlerHelper(setUrl,listOfLinks,listOfLinks.pop()) #need to figure out this logic
+
+    #maybe return a list of urls that are closure like [crawlerHelper(url),crawlerHelper(url),crawlerHelper(url)]
     
         
 # -1 if not a valid url
