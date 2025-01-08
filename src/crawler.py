@@ -5,8 +5,8 @@ import requests
 
 def getResponse(url: str):  # add in if the http is not included format the url
     PREFIX = "https://"  # update this so we only validate urls
-    if ".com" not in url:
-        raise Exception("Not a website/valid url")
+    if not any(ext in url for ext in [".com", ".org", ".net"]):
+        raise Exception("Not a website/valid URL")
 
     if PREFIX not in url:
         url = PREFIX + url
@@ -36,10 +36,9 @@ def crawHtmlForForms(html: str):
     else:
         return forms
 
-    # recursively find all links to a website
 
-
-def crawlUrl(rootUrl: str) -> list:
+# recursively find all links to a website
+def crawlWebsite(rootUrl: str) -> list:
     return crawlerHelper(set(), rootUrl)
 
 
