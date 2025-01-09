@@ -8,22 +8,16 @@ import utils
 
 import logging
 
-# Configure logging to write to a file
-logging.basicConfig(
-    filename="logs/app.log",  # File where logs are saved
-    level=logging.INFO,  # Minimum log level to capture
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    datefmt="%b %d %Y %I:%M:%S %p",  # Custom date format: "Jan 09 2025 06:24:00 PM"# Log format
-    filemode="w",  # Overwrite the file each time the program runs (use 'a' to append)
-)
 
+# Configure logging 
 
-# go over if I should catch the ejection for a get request and continue the program not terminate it. Like in the get request
+utils.enableLogging()
 
 
 def getHtml(url: str):  # add in if the http is not included format the url
     PREFIX = "https://"  # update this so we only validate urls also update for http
     if not any(ext in url for ext in [".com", ".org", ".net"]):
+        logging.error(f"'{url}' is Not a website/valid URL")
         raise Exception("Not a website/valid URL")
 
     if PREFIX not in url:
@@ -47,27 +41,29 @@ def getHtml(url: str):  # add in if the http is not included format the url
             logging.info(f"Success: {response.status_code} for {url}")
             return response.text
         else:
-            logging.error(f"Error accessing {url}: {e}")
-
+            logging.error(
+                f"Request for {url} failed with status code {response.status_code}: {response.reason}"
+            )
             raise Exception(
-                f"Request failed with status code {response.status_code}: {response.reason}"
+                f"Request failed for {url} with status code {response.status_code}: {response.reason}"
             )
 
-    except requests.exceptions.RequestException as e:
-        print(f"ERROR: {e}")
+    except requests.exceptions.RequestException as error:
+        logging.error(f"RequestException occurred for {url}: {error}")
         raise
 
 
 def crawHtmlForForms(
     linksSet: set,
 ):  # async this send out all the http requests at once.
+    logging.info("Crawl Finished")
+
     dictForms = {}
     for link in linksSet:
         try:
             dictForms[link] = BeautifulSoup(getHtml(link), "html.parser").find_all(
                 "form"
             )
-
         except Exception:
             continue
     return {k: v for k, v in dictForms.items() if v != []}
@@ -93,10 +89,10 @@ def crawlerHelper(seen: set, setLinks: set, url: str, baseDomain: str) -> set:
         return setLinks
 
     seen.add(url)
-    setLinks.add(url)
 
     try:
         responseHtml = getHtml(url)
+        setLinks.add(url)
     except Exception:
         return setLinks
 
@@ -177,7 +173,7 @@ def normalizeUrl(base_url: str, relative_url: str) -> str:
     return normalized_url
 
 
-print(crawHtmlForForms(crawlWebsite("https://spillaneandson.com")))
+print(crawHtmlForForms(crawlWebsite("https://www.google.com")))
 
 
 # normalize url only works when theres a protocol https or http but our functions parse.netloc does not include it so the valid url function and normalize function doesnt work
