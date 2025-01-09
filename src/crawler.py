@@ -38,7 +38,7 @@ def getHtml(url: str):  # add in if the http is not included format the url
         response.raise_for_status()
 
         if response.ok:
-            logging.info(f"Success: {response.status_code} for {url}")
+            logging.info(f"Success: {response.status_code} for {url} response headers:{response.headers}")
             return response.text
         else:
             logging.error(
