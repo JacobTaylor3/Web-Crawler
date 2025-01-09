@@ -19,7 +19,16 @@ def getHtml(url: str):  # add in if the http is not included format the url
         url = PREFIX + url
 
     try:
-        response = requests.get(url=url)
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.5",
+            "Referer": "https://www.google.com",
+        }
+
+        response = requests.get(
+            url=url, allow_redirects=True, timeout=10, headers=headers
+        )
 
         response.raise_for_status()
 
@@ -35,30 +44,42 @@ def getHtml(url: str):  # add in if the http is not included format the url
         raise
 
 
-def crawHtmlForForms(linksSet: set):
-    listForms = []
+def crawHtmlForForms(
+    linksSet: set,
+):  # async this send out all the http requests at once.
+    dictForms = {}
     for link in linksSet:
         try:
-            listForms.append(
-                BeautifulSoup(getHtml(link), "html.parser").find_all("form")
+            dictForms[link] = BeautifulSoup(getHtml(link), "html.parser").find_all(
+                "form"
             )
 
         except Exception:
             continue
-    return listForms
+    return {k: v for k, v in dictForms.items() if v != []}
+
+
+def extractDataForms(data: dict):
+    pass
 
 
 # recursively find all links to a website
 def crawlWebsite(url: str) -> list:
-    return crawlerHelper(set(), set(), url, urlparse(url).netloc)
+    return crawlerHelper(
+        set(),
+        set(),
+        url.strip("/"),
+        urlparse(url).scheme + "://" + urlparse(url).netloc,
+    )
 
 
 def crawlerHelper(seen: set, setLinks: set, url: str, baseDomain: str) -> set:
     # base case
-    if url in seen or len(seen) == 500 or urlDepth(url) > 3:
+    if url in seen or len(seen) == 500 or urlDepth(url) > 3:  #
         return setLinks
 
     seen.add(url)
+    setLinks.add(url)
 
     try:
         responseHtml = getHtml(url)
@@ -67,12 +88,14 @@ def crawlerHelper(seen: set, setLinks: set, url: str, baseDomain: str) -> set:
 
     hrefList = BeautifulSoup(responseHtml, "html.parser").find_all("a")
 
-    if len(hrefList) == 0:
+    if not hrefList:
         return setLinks
 
     else:
         for href in hrefList:
             data = href.get("href")
+            if not data:
+                continue
             updateLink = urlPath(data, baseDomain).lower().rstrip("/")
             if isValidUrl(updateLink, baseDomain) and updateLink not in seen:
                 setLinks.add(updateLink)
@@ -91,11 +114,11 @@ def urlDepth(url: str) -> int:
 def isValidUrl(url: str, baseDomain):
     return (
         not url.lower().endswith(tuple(utils.FILETYPES))
-        and urlparse(url).netloc == baseDomain
+        and urlparse(url).scheme + "://" + urlparse(url).netloc == baseDomain
     )
 
 
-def urlPath(url: str, baseDomain):
+def urlPath(url: str, baseDomain: str):
     if (
         urlparse(url).scheme == ""
         and urlparse(url).netloc == ""
@@ -140,5 +163,12 @@ def normalizeUrl(base_url: str, relative_url: str) -> str:
     return normalized_url
 
 
-print(crawHtmlForForms(crawlWebsite("https://spillaneandson.com")))
+data = crawlWebsite("https://www.google.com")
+data2 = crawlWebsite("https://google.com")
+# print(data)
+print(data2)
 
+
+# normalize url only works when theres a protocal https or http but our functions parse.netloc does not include it so the valid url function and normalize function doesnt work
+
+# Right now this only works when the protocal is included doesnt if not
