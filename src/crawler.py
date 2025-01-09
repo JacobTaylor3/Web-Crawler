@@ -6,6 +6,17 @@ from urllib.parse import urlparse, urljoin, urlunparse
 
 import utils
 
+import logging
+
+# Configure logging to write to a file
+logging.basicConfig(
+    filename="logs/app.log",  # File where logs are saved
+    level=logging.INFO,  # Minimum log level to capture
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    datefmt="%b %d %Y %I:%M:%S %p",  # Custom date format: "Jan 09 2025 06:24:00 PM"# Log format
+    filemode="w",  # Overwrite the file each time the program runs (use 'a' to append)
+)
+
 
 # go over if I should catch the ejection for a get request and continue the program not terminate it. Like in the get request
 
@@ -33,8 +44,11 @@ def getHtml(url: str):  # add in if the http is not included format the url
         response.raise_for_status()
 
         if response.ok:
+            logging.info(f"Success: {response.status_code} for {url}")
             return response.text
         else:
+            logging.error(f"Error accessing {url}: {e}")
+
             raise Exception(
                 f"Request failed with status code {response.status_code}: {response.reason}"
             )
@@ -163,13 +177,10 @@ def normalizeUrl(base_url: str, relative_url: str) -> str:
     return normalized_url
 
 
-data = crawlWebsite("https://www.google.com")
-data2 = crawlWebsite("https://google.com")
-# print(data)
-print(data2)
+print(crawHtmlForForms(crawlWebsite("https://spillaneandson.com")))
 
 
 # normalize url only works when theres a protocol https or http but our functions parse.netloc does not include it so the valid url function and normalize function doesnt work
-#fixed this by prepending the protocal and "://" to a link maybe modularize so its cleaner? maybe some edge cases im not thinking off
-#Need to check the url to see if its valid or not like urls without a protocal or .com to either add the protocal or terminate for user input
-# Right now this only works when the protocal is included doesnt if not
+# fixed this by prepending the protocol and "://" to a link maybe modularize so its cleaner? maybe some edge cases im not thinking off
+# Need to check the url to see if its valid or not like urls without a protocol or .com to either add the protocol or terminate for user input
+# Right now this only works when the protocol is included doesn't if not
