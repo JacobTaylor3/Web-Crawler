@@ -169,6 +169,7 @@ data2 = crawlWebsite("https://google.com")
 print(data2)
 
 
-# normalize url only works when theres a protocal https or http but our functions parse.netloc does not include it so the valid url function and normalize function doesnt work
-
+# normalize url only works when theres a protocol https or http but our functions parse.netloc does not include it so the valid url function and normalize function doesnt work
+#fixed this by prepending the protocal and "://" to a link maybe modularize so its cleaner? maybe some edge cases im not thinking off
+#Need to check the url to see if its valid or not like urls without a protocal or .com to either add the protocal or terminate for user input
 # Right now this only works when the protocal is included doesnt if not
