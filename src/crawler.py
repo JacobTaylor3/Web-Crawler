@@ -20,8 +20,8 @@ def getHtml(url: str):  # add in if the http is not included format the url
         logging.error(f"'{url}' is Not a website/valid URL")
         raise Exception("Not a website/valid URL")
 
-    if PREFIX not in url:
-        url = PREFIX + url
+    # if PREFIX not in url:
+    #     url = PREFIX + url
 
     try:
         headers = {
@@ -173,7 +173,7 @@ def normalizeUrl(base_url: str, relative_url: str) -> str:
     return normalized_url
 
 
-print(crawHtmlForForms(crawlWebsite("https://www.google.com")))
+print(crawHtmlForForms(crawlWebsite("http://testasp.vulnweb.com/")))
 
 
 # normalize url only works when theres a protocol https or http but our functions parse.netloc does not include it so the valid url function and normalize function doesnt work
