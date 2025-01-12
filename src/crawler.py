@@ -212,7 +212,7 @@ async def main(url):
 
 if __name__ == "__main__":
     start_time = time.time()
-    print(asyncio.run(main("https://google.com")))
+    print(asyncio.run(main(checkLink("https://google.com"))))
     total_time = time.time() - start_time
     logging.info(f"Program Finished in: {total_time} seconds")
 
