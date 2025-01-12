@@ -1,7 +1,5 @@
 from bs4 import BeautifulSoup
 
-import requests
-
 from urllib.parse import urlparse, urljoin, urlunparse
 
 import utils
@@ -11,6 +9,8 @@ import logging
 import httpx
 
 import asyncio
+
+import time
 
 # Configure logging
 
@@ -206,11 +206,15 @@ async def getHtml(url):
 async def main(url):
     
     crawlResults = await crawlWebsite(url)
-
+   
     return await crawHtmlForForms(crawlResults)
 
 
-print(asyncio.run(main("https://google.com")))
+if __name__ == "__main__":
+    start_time = time.time()
+    print(asyncio.run(main("https://google.com")))
+    total_time = time.time() - start_time
+    logging.info(f"Program Finished in: {total_time} seconds")
 
 
 # normalize url only works when theres a protocol https or http but our functions parse.netloc does not include it so the valid url function and normalize function doesnt work
