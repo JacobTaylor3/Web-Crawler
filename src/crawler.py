@@ -8,74 +8,81 @@ import utils
 
 import logging
 
+import httpx
 
-# Configure logging 
+import asyncio
+
+# Configure logging
 
 utils.enableLogging()
 
+# def getHtml(url: str):
 
-def getHtml(url: str):  # add in if the http is not included format the url
-    PREFIX = "https://"  # update this so we only validate urls also update for http
-    if not any(ext in url for ext in [".com", ".org", ".net"]):
-        logging.error(f"'{url}' is Not a website/valid URL")
-        raise Exception("Not a website/valid URL")
+#     try:
+#         headers = {
+#             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36",
+#             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+#             "Accept-Language": "en-US,en;q=0.5",
+#             "Referer": "https://www.google.com",
+#         }
 
-    # if PREFIX not in url:
-    #     url = PREFIX + url
+#         response = requests.get(
+#             url=url, allow_redirects=True, timeout=10, headers=headers
+#         )
 
-    try:
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-            "Accept-Language": "en-US,en;q=0.5",
-            "Referer": "https://www.google.com",
-        }
+#         response.raise_for_status()
 
-        response = requests.get(
-            url=url, allow_redirects=True, timeout=10, headers=headers
-        )
+#         if response.ok:
+#             logging.info(
+#                 f"Success: {response.status_code} for {url} response headers:{response.headers}"
+#             )
+#             return response.text
+#         else:
+#             logging.error(
+#                 f"Request for {url} failed with status code {response.status_code}: {response.reason}"
+#             )
+#             raise Exception(
+#                 f"Request failed for {url} with status code {response.status_code}: {response.reason}"
+#             )
 
-        response.raise_for_status()
-
-        if response.ok:
-            logging.info(f"Success: {response.status_code} for {url} response headers:{response.headers}")
-            return response.text
-        else:
-            logging.error(
-                f"Request for {url} failed with status code {response.status_code}: {response.reason}"
-            )
-            raise Exception(
-                f"Request failed for {url} with status code {response.status_code}: {response.reason}"
-            )
-
-    except requests.exceptions.RequestException as error:
-        logging.error(f"RequestException occurred for {url}: {error}")
-        raise
+#     except requests.exceptions.RequestException as error:
+#         logging.error(f"RequestException occurred for {url}: {error}")
+#         raise
 
 
-def crawHtmlForForms(
+def formClosure(link: str):
+    async def sendSingleRequest():
+        try:
+            return {
+                link: BeautifulSoup(await getHtml(link), "html.parser").find_all("form")
+            }
+        except Exception:
+            return {link: []}
+
+    return sendSingleRequest
+
+
+async def crawHtmlForForms(
     linksSet: set,
 ):  # async this send out all the http requests at once.
     logging.info("Crawl Finished")
 
-    dictForms = {}
+    closureList = []
+
     for link in linksSet:
-        try:
-            dictForms[link] = BeautifulSoup(getHtml(link), "html.parser").find_all(
-                "form"
-            )
-        except Exception:
-            continue
-    return {k: v for k, v in dictForms.items() if v != []}
+        closureList.append(formClosure(link)())
 
+    results = await asyncio.gather(*closureList)
 
-def extractDataForms(data: dict):
+    return {key: value for d in results for key, value in d.items() if value}
+
+async def extractDataForms(data: dict):
     pass
 
 
 # recursively find all links to a website
-def crawlWebsite(url: str) -> list:
-    return crawlerHelper(
+async def crawlWebsite(url: str) -> list:
+    return await crawlerHelper(
         set(),
         set(),
         url.strip("/"),
@@ -83,7 +90,7 @@ def crawlWebsite(url: str) -> list:
     )
 
 
-def crawlerHelper(seen: set, setLinks: set, url: str, baseDomain: str) -> set:
+async def crawlerHelper(seen: set, setLinks: set, url: str, baseDomain: str) -> set:
     # base case
     if url in seen or len(seen) == 500 or urlDepth(url) > 3:  #
         return setLinks
@@ -91,7 +98,7 @@ def crawlerHelper(seen: set, setLinks: set, url: str, baseDomain: str) -> set:
     seen.add(url)
 
     try:
-        responseHtml = getHtml(url)
+        responseHtml = await getHtml(url)
         setLinks.add(url)
     except Exception:
         return setLinks
@@ -106,19 +113,16 @@ def crawlerHelper(seen: set, setLinks: set, url: str, baseDomain: str) -> set:
             data = href.get("href")
             if not data:
                 continue
-            updateLink = urlPath(data, baseDomain).lower().rstrip("/")
+            updateLink = normalizeUrl(baseDomain, data).lower().rstrip("/")
             if isValidUrl(updateLink, baseDomain) and updateLink not in seen:
                 setLinks.add(updateLink)
 
         for link in setLinks:
-            return crawlerHelper(seen, setLinks, link, baseDomain)
+            return await crawlerHelper(seen, setLinks, link, baseDomain)
 
 
-# -1 if not a valid url
 def urlDepth(url: str) -> int:
-    urlPath = urlparse(url).path
-
-    return len(list(filter(None, urlPath.split("/"))))
+    return len(list(filter(None, urlparse(url).path.split("/"))))
 
 
 def isValidUrl(url: str, baseDomain):
@@ -126,18 +130,6 @@ def isValidUrl(url: str, baseDomain):
         not url.lower().endswith(tuple(utils.FILETYPES))
         and urlparse(url).scheme + "://" + urlparse(url).netloc == baseDomain
     )
-
-
-def urlPath(url: str, baseDomain: str):
-    if (
-        urlparse(url).scheme == ""
-        and urlparse(url).netloc == ""
-        and urlparse(url).path != ""
-    ):
-        return normalizeUrl(baseDomain, url)  # relative to absolute
-
-    else:
-        return url  # absoluteurl
 
 
 def normalizeUrl(base_url: str, relative_url: str) -> str:
@@ -173,7 +165,51 @@ def normalizeUrl(base_url: str, relative_url: str) -> str:
     return normalized_url
 
 
-print(crawHtmlForForms(crawlWebsite("http://testasp.vulnweb.com/")))
+def checkLink(url: str):
+    HTTPS = "https://"
+    HTTP = "http://"
+    if not any(ext in url for ext in [".com", ".org", ".net"]):
+        logging.error(f"'{url}' is Not a website/valid URL")
+        raise Exception("Not a  valid website/valid URL")
+
+    if not (url.startswith(HTTPS) or url.startswith(HTTP)):
+        return "".join(HTTPS + url)
+    return url
+
+
+async def getHtml(url):
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5",
+        "Referer": "https://www.google.com",
+    }
+
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                url, headers=headers, follow_redirects=True, timeout=10
+            )
+            response.raise_for_status()
+            # Raise an exception for HTTP errors
+            logging.info(f" Received Response for {url} Time elapsed: {response._elapsed.total_seconds()} seconds ")
+            return response.text
+    except httpx.HTTPStatusError:
+      
+        raise Exception(
+            f"Request failed for {url} with status code {response.status_code}"
+        )
+    except httpx.RequestError:
+        raise
+
+
+async def main(url):
+    crawlResults = await crawlWebsite(url)
+
+    return await crawHtmlForForms(crawlResults)
+
+
+print(asyncio.run(main("https://google.com")))
 
 
 # normalize url only works when theres a protocol https or http but our functions parse.netloc does not include it so the valid url function and normalize function doesnt work
