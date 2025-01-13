@@ -25,6 +25,7 @@ async def formClosure(link: str):
     except Exception:
         return {link: []}
 
+
 async def crawHtmlForForms(
     linksSet: set,
 ):  # async this send out all the http requests at once.
@@ -80,9 +81,12 @@ async def crawlerHelper(
                 setLinks.add(updateLink)
 
         for link in setLinks:
-            return await crawlerHelper(
-                seen, setLinks, link, baseDomain, max_depth=max_depth
-            )
+            if link not in seen:
+                await crawlerHelper(
+                    seen, setLinks, link, baseDomain, max_depth=max_depth
+                )
+        return setLinks
+
 
 def urlDepth(url: str) -> int:
     return len(list(filter(None, urlparse(url).path.split("/"))))
@@ -169,13 +173,12 @@ async def getHtml(url):
 
 async def main(url):
     crawlResults = await crawlWebsite(url, 3)
-
     return await crawHtmlForForms(crawlResults)
 
 
 if __name__ == "__main__":
     start_time = time.time()
-    print(asyncio.run(main(checkLink("https://www.google.com"))))
+    print(asyncio.run(main(checkLink("https://www.pornhub.com"))))
     total_time = time.time() - start_time
     logging.info(f"Program Finished in: {total_time} seconds")
 
