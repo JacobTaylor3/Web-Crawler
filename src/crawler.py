@@ -55,7 +55,7 @@ async def crawlerHelper(
     seen: set, setLinks: set, url: str, baseDomain: str, max_depth: int
 ) -> set:
     # base case
-    if url in seen or len(seen) == 500 or urlDepth(url) > max_depth:  #
+    if url in seen or len(seen) == 50 or urlDepth(url) > max_depth:  #
         return setLinks
 
     seen.add(url)
@@ -81,7 +81,6 @@ async def crawlerHelper(
                 setLinks.add(updateLink)
 
         for link in setLinks:
-            if link not in seen:
                 await crawlerHelper(
                     seen, setLinks, link, baseDomain, max_depth=max_depth
                 )
@@ -178,7 +177,7 @@ async def main(url):
 
 if __name__ == "__main__":
     start_time = time.time()
-    print(asyncio.run(main(checkLink("https://www.pornhub.com"))))
+    print(asyncio.run(main(checkLink("https://spillaneandson.com"))))
     total_time = time.time() - start_time
     logging.info(f"Program Finished in: {total_time} seconds")
 
