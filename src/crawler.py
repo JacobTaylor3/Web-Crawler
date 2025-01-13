@@ -16,83 +16,45 @@ import time
 
 utils.enableLogging()
 
-# def getHtml(url: str):
 
-#     try:
-#         headers = {
-#             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36",
-#             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-#             "Accept-Language": "en-US,en;q=0.5",
-#             "Referer": "https://www.google.com",
-#         }
-
-#         response = requests.get(
-#             url=url, allow_redirects=True, timeout=10, headers=headers
-#         )
-
-#         response.raise_for_status()
-
-#         if response.ok:
-#             logging.info(
-#                 f"Success: {response.status_code} for {url} response headers:{response.headers}"
-#             )
-#             return response.text
-#         else:
-#             logging.error(
-#                 f"Request for {url} failed with status code {response.status_code}: {response.reason}"
-#             )
-#             raise Exception(
-#                 f"Request failed for {url} with status code {response.status_code}: {response.reason}"
-#             )
-
-#     except requests.exceptions.RequestException as error:
-#         logging.error(f"RequestException occurred for {url}: {error}")
-#         raise
-
-
-def formClosure(link: str):
-    async def sendSingleRequest():
-        try:
-            return {
-                link: BeautifulSoup(await getHtml(link), "html.parser").find_all("form")
-            }
-        except Exception:
-            return {link: []}
-
-    return sendSingleRequest
-
+async def formClosure(link: str):
+    try:
+        return {
+            link: BeautifulSoup(await getHtml(link), "html.parser").find_all("form")
+        }
+    except Exception:
+        return {link: []}
 
 async def crawHtmlForForms(
     linksSet: set,
 ):  # async this send out all the http requests at once.
     logging.info("Crawl Finished")
 
-    closureList = []
-
-    for link in linksSet:
-        closureList.append(formClosure(link)())
-
-    results = await asyncio.gather(*closureList)
+    results = await asyncio.gather(*(formClosure(link) for link in linksSet))
 
     return {key: value for d in results for key, value in d.items() if value}
+
 
 async def extractDataForms(data: dict):
     pass
 
 
 # recursively find all links to a website
-async def crawlWebsite(url: str) -> list:
+async def crawlWebsite(url: str, max_depth) -> list:
     return await crawlerHelper(
         set(),
         set(),
         url.strip("/"),
         urlparse(url).scheme + "://" + urlparse(url).netloc,
+        max_depth=max_depth,
     )
 
 
-async def crawlerHelper(seen: set, setLinks: set, url: str, baseDomain: str) -> set:
+async def crawlerHelper(
+    seen: set, setLinks: set, url: str, baseDomain: str, max_depth: int
+) -> set:
     # base case
-    if url in seen or len(seen) == 500 or urlDepth(url) > 3:  #
+    if url in seen or len(seen) == 500 or urlDepth(url) > max_depth:  #
         return setLinks
 
     seen.add(url)
@@ -118,8 +80,9 @@ async def crawlerHelper(seen: set, setLinks: set, url: str, baseDomain: str) -> 
                 setLinks.add(updateLink)
 
         for link in setLinks:
-            return await crawlerHelper(seen, setLinks, link, baseDomain)
-
+            return await crawlerHelper(
+                seen, setLinks, link, baseDomain, max_depth=max_depth
+            )
 
 def urlDepth(url: str) -> int:
     return len(list(filter(None, urlparse(url).path.split("/"))))
@@ -192,10 +155,11 @@ async def getHtml(url):
             )
             response.raise_for_status()
             # Raise an exception for HTTP errors
-            logging.info(f" Received Response for {url} Time elapsed: {response._elapsed.total_seconds()} seconds ")
+            logging.info(
+                f" Received Response for {url} Time elapsed: {response._elapsed.total_seconds()} seconds "
+            )
             return response.text
     except httpx.HTTPStatusError:
-      
         raise Exception(
             f"Request failed for {url} with status code {response.status_code}"
         )
@@ -204,15 +168,14 @@ async def getHtml(url):
 
 
 async def main(url):
-    
-    crawlResults = await crawlWebsite(url)
-   
+    crawlResults = await crawlWebsite(url, 3)
+
     return await crawHtmlForForms(crawlResults)
 
 
 if __name__ == "__main__":
     start_time = time.time()
-    print(asyncio.run(main(checkLink("https://google.com"))))
+    print(asyncio.run(main(checkLink("https://www.google.com"))))
     total_time = time.time() - start_time
     logging.info(f"Program Finished in: {total_time} seconds")
 
