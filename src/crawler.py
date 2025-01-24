@@ -80,7 +80,7 @@ async def crawlerHelper(
             if isValidUrl(updateLink, baseDomain) and updateLink not in seen:
                 setLinks.add(updateLink)
 
-        for link in setLinks:
+        for link in setLinks: #if link not in seen:
                 await crawlerHelper(
                     seen, setLinks, link, baseDomain, max_depth=max_depth
                 )
