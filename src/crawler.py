@@ -80,10 +80,8 @@ async def crawlerHelper(
             if isValidUrl(updateLink, baseDomain) and updateLink not in seen:
                 setLinks.add(updateLink)
 
-        for link in setLinks: #if link not in seen:
-                await crawlerHelper(
-                    seen, setLinks, link, baseDomain, max_depth=max_depth
-                )
+        for link in setLinks:  # if link not in seen:
+            await crawlerHelper(seen, setLinks, link, baseDomain, max_depth=max_depth)
         return setLinks
 
 
@@ -143,6 +141,32 @@ def checkLink(url: str):
     return url
 
 
+# ex google.com/robots.txt
+async def crawlRobotTxt(url: str, baseurl: str):
+    html = await getHtml(url)
+
+    filtered= [x for x in [
+        x.removeprefix("Disallow:")
+        .removeprefix("Allow:")
+        .removeprefix("Sitemap:")
+        .strip()
+        for x in html.split("\n")
+        if x.strip()
+    ] if not x.startswith("User-agent:") and "#" not in x]
+   
+
+    fullpath = [
+        # Keep the original link if it starts with "http://" or "https://"
+        x
+        if x.startswith("http://") or x.startswith("https://")
+        # Otherwise, add "https://" + baseurl
+        else f"https://{baseurl}{x}"
+        for x in filtered
+    ]
+    
+    return fullpath
+
+
 async def getHtml(url):
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36",
@@ -175,14 +199,18 @@ async def main(url):
     return await crawHtmlForForms(crawlResults)
 
 
-if __name__ == "__main__":
-    start_time = time.time()
-    print(asyncio.run(main(checkLink("https://spillaneandson.com"))))
-    total_time = time.time() - start_time
-    logging.info(f"Program Finished in: {total_time} seconds")
+# if __name__ == "__main__":
+# start_time = time.time()
+# print(asyncio.run(main(checkLink("https://spillaneandson.com"))))
+# total_time = time.time() - start_time
+# logging.info(f"Program Finished in: {total_time} seconds")
+
+asyncio.run(crawlRobotTxt("https://google.com/robots.txt", "google.com"))
 
 
 # normalize url only works when theres a protocol https or http but our functions parse.netloc does not include it so the valid url function and normalize function doesnt work
 # fixed this by prepending the protocol and "://" to a link maybe modularize so its cleaner? maybe some edge cases im not thinking off
 # Need to check the url to see if its valid or not like urls without a protocol or .com to either add the protocol or terminate for user input
 # Right now this only works when the protocol is included doesn't if not
+
+#if the user wants to crawl the robots.txt just add it to the set of links
