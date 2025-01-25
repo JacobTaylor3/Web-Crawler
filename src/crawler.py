@@ -145,15 +145,18 @@ def checkLink(url: str):
 async def crawlRobotTxt(url: str, baseurl: str):
     html = await getHtml(url)
 
-    filtered= [x for x in [
-        x.removeprefix("Disallow:")
-        .removeprefix("Allow:")
-        .removeprefix("Sitemap:")
-        .strip()
-        for x in html.split("\n")
-        if x.strip()
-    ] if not x.startswith("User-agent:") and "#" not in x]
-   
+    filtered = [
+        x
+        for x in [
+            x.removeprefix("Disallow:")
+            .removeprefix("Allow:")
+            .removeprefix("Sitemap:")
+            .strip()
+            for x in html.split("\n")
+            if x.strip()
+        ]
+        if not x.startswith("User-agent:") and "#" not in x
+    ]
 
     fullpath = [
         # Keep the original link if it starts with "http://" or "https://"
@@ -163,7 +166,7 @@ async def crawlRobotTxt(url: str, baseurl: str):
         else f"https://{baseurl}{x}"
         for x in filtered
     ]
-    
+
     return fullpath
 
 
@@ -190,7 +193,8 @@ async def getHtml(url):
         raise Exception(
             f"Request failed for {url} with status code {response.status_code}"
         )
-    except httpx.RequestError:
+    except httpx.RequestError as error:
+        logging.error(f"Request failed for {url}. Error: {str(error)}")
         raise
 
 
@@ -213,4 +217,4 @@ asyncio.run(crawlRobotTxt("https://google.com/robots.txt", "google.com"))
 # Need to check the url to see if its valid or not like urls without a protocol or .com to either add the protocol or terminate for user input
 # Right now this only works when the protocol is included doesn't if not
 
-#if the user wants to crawl the robots.txt just add it to the set of links
+# if the user wants to crawl the robots.txt just add it to the set of links

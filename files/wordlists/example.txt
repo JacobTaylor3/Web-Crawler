@@ -1,0 +1,13 @@
+/admin
+/test
+/dev
+/staging
+/api
+/beta
+#Here is an example
+/mail
+/portal
+
+#Here is spills
+/web
+/secure
