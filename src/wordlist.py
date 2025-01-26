@@ -8,8 +8,6 @@ from tabulate import tabulate
 utils.enableLogging()
 
 
-
-
 async def sendRequest(url: str):
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36",
@@ -54,18 +52,18 @@ async def bruteForceWordList(wordlist: list, baseUrl: str):
 
     return responses
 
-def filterResponse(responses,statusCode:int):
-    
+
+def filterResponse(responses, statusCode: int):
     return [element for element in responses if element["statusCode"] == statusCode]
 
 
-
 response = asyncio.run(
-        bruteForceWordList(
-            generateLinks("files\\wordlists\\wordpress.txt"), "https://spillaneandson.com"
-        )
+    bruteForceWordList(
+        generateLinks("files\\wordlists\\wordpress.txt"), "https://www.spillaneandsons.com"
     )
+)
 
-print(tabulate(filterResponse(response,200), headers="keys", tablefmt="grid"))
+print(tabulate(filterResponse(response, 200), headers="keys", tablefmt="grid"))
 
-#look into ways where we can limit requests sent to the server. Rate limiting
+# look into ways where we can limit requests sent to the server. Rate limiting
+#Should the wordlist have prepended/? or not in the wordlist 

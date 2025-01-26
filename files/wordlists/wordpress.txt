@@ -18,3 +18,4 @@
 /wp-blog-header.php
 /wp-load.php
 /wp-settings.php
+/wp-settings.php
