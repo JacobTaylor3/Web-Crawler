@@ -16,6 +16,7 @@ async def sendRequest(url: str):
         "Referer": "https://www.google.com",
     }
 
+
     try:
         async with httpx.AsyncClient() as client:
             response = await client.get(
